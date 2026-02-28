@@ -6,6 +6,9 @@
 		"allowMixedContent": true,
 		"backgroundColor": "#04000a"
 	},
+	"server": {
+		"androidScheme": "file"
+	},
 	"plugins": {
 		"SplashScreen": {
 			"launchShowDuration": 0
