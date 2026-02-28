@@ -1,0 +1,14 @@
+{
+  "appId": "com.tolstyak.game",
+  "appName": "Толстяк 4.0",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#04000a"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 0
+    }
+  }
+}
