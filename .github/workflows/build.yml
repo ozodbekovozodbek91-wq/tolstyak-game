@@ -1,4 +1,3 @@
-
 name: Build Release APK
 
 on:
@@ -28,11 +27,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Install Capacitor Android
+        run: npm install @capacitor/android
+
       - name: Add Android platform
         run: npx cap add android
 
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Copy web assets
+        run: npx cap copy android
 
       - name: Generate Keystore
         run: |
@@ -46,18 +48,26 @@ jobs:
             -keypass Tolstyak2024 \
             -dname "CN=Tolstyak, OU=Game, O=Tolstyak, L=RU, S=RU, C=RU"
 
-      - name: Configure signing in build.gradle
+      - name: Configure signing
         run: |
-          sed -i '/buildTypes {/i\
-              signingConfigs {\
-                  release {\
-                      storeFile file("tolstyak.keystore")\
-                      storePassword "Tolstyak2024"\
-                      keyAlias "tolstyak"\
-                      keyPassword "Tolstyak2024"\
-                  }\
-              }' android/app/build.gradle
-          sed -i 's/buildTypes {/buildTypes {\n            release {\n                signingConfig signingConfigs.release\n                minifyEnabled false\n            }/' android/app/build.gradle
+          cat >> android/app/build.gradle << 'EOF'
+          android {
+            signingConfigs {
+              release {
+                storeFile file("tolstyak.keystore")
+                storePassword "Tolstyak2024"
+                keyAlias "tolstyak"
+                keyPassword "Tolstyak2024"
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+                minifyEnabled false
+              }
+            }
+          }
+          EOF
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
