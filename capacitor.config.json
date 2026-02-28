@@ -1,14 +1,85 @@
-{
-  "appId": "com.tolstyak.game",
-  "appName": "Толстяк 4.0",
-  "webDir": "www",
-  "android": {
-    "allowMixedContent": true,
-    "backgroundColor": "#04000a"
-  },
-  "plugins": {
-    "SplashScreen": {
-      "launchShowDuration": 0
-    }
-  }
-}
+name: Build Release APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Capacitor Android
+        run: npm install @capacitor/android
+
+      - name: Add Android platform
+        run: npx cap add android
+
+      - name: Copy web assets
+        run: npx cap copy android
+
+      - name: Generate Keystore
+        run: |
+          keytool -genkey -v \
+            -keystore android/app/tolstyak.keystore \
+            -alias tolstyak \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass Tolstyak2024 \
+            -keypass Tolstyak2024 \
+            -dname "CN=Tolstyak, OU=Game, O=Tolstyak, L=RU, S=RU, C=RU"
+
+      - name: Configure signing
+        run: |
+          cat >> android/app/build.gradle << 'EOF'
+          android {
+            signingConfigs {
+              release {
+                storeFile file("tolstyak.keystore")
+                storePassword "Tolstyak2024"
+                keyAlias "tolstyak"
+                keyPassword "Tolstyak2024"
+              }
+            }
+            buildTypes {
+              release {
+                signingConfig signingConfigs.release
+                minifyEnabled false
+              }
+            }
+          }
+          EOF
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      - name: Build Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: tolstyak-release
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30
