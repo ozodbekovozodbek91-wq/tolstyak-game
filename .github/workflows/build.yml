@@ -1,4 +1,5 @@
-name: Build APK
+
+name: Build Release APK
 
 on:
   push:
@@ -33,17 +34,42 @@ jobs:
       - name: Sync Capacitor
         run: npx cap sync android
 
+      - name: Generate Keystore
+        run: |
+          keytool -genkey -v \
+            -keystore android/app/tolstyak.keystore \
+            -alias tolstyak \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass Tolstyak2024 \
+            -keypass Tolstyak2024 \
+            -dname "CN=Tolstyak, OU=Game, O=Tolstyak, L=RU, S=RU, C=RU"
+
+      - name: Configure signing in build.gradle
+        run: |
+          sed -i '/buildTypes {/i\
+              signingConfigs {\
+                  release {\
+                      storeFile file("tolstyak.keystore")\
+                      storePassword "Tolstyak2024"\
+                      keyAlias "tolstyak"\
+                      keyPassword "Tolstyak2024"\
+                  }\
+              }' android/app/build.gradle
+          sed -i 's/buildTypes {/buildTypes {\n            release {\n                signingConfig signingConfigs.release\n                minifyEnabled false\n            }/' android/app/build.gradle
+
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
-      - name: Build debug APK
+      - name: Build Release APK
         run: |
           cd android
-          ./gradlew assembleDebug
+          ./gradlew assembleRelease
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: tolstyak-debug.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: tolstyak-release
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 30
